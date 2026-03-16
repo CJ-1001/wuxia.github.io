@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>武侠电影问答</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: "Microsoft YaHei", serif;
+    background: #2b2520;
+    color: #f9f2e4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath fill='%234a3f35' fill-opacity='0.1' d='M10 10L20 10L20 20L10 20Z M30 30L40 30L40 40L30 40Z M50 50L60 50L60 60L50 60Z M70 70L80 70L80 80L70 80Z'/%3E%3C/svg%3E");
+}
+.game-box {
+    width: 90%;
+    max-width: 700px;
+    background: #3d342b;
+    border: 3px solid #b9956c;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.7);
+    text-align: center;
+    position: relative;
+}
+.title {
+    font-size: 26px;
+    color: #e9c99a;
+    margin-bottom: 20px;
+    text-shadow: 0 0 8px #b9956c;
+}
+.question {
+    font-size: 19px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    min-height: 50px;
+}
+.options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.option {
+    background: #52463a;
+    border: 2px solid #b9956c;
+    color: #f9f2e4;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.option:hover {
+    background: #635446;
+    border-color: #e9c99a;
+}
+.option.correct {
+    background: #5a7d53;
+    border-color: #8fc57f;
+}
+.option.wrong {
+    background: #7d4b4b;
+    border-color: #c57f7f;
+}
+.tip {
+    margin-top: 18px;
+    font-size: 18px;
+    height: 28px;
+}
+.progress {
+    margin-top: 12px;
+    color: #c9b8a2;
+    font-size: 14px;
+}
+.score-text {
+    margin-top: 20px;
+    font-size: 20px;
+    color: #e9c99a;
+}
+@keyframes shake {
+    0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}
+}
+.shake {
+    animation: shake 0.4s ease;
+}
+.end-page {
+    display: none;
+}
+</style>
+</head>
+<body>
+
+<div class="game-box" id="gameBox">
+    <div class="title">🎬 武侠电影问答小测验</div>
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+    <div class="tip" id="tip"></div>
+    <div class="progress" id="progress"></div>
+    <div class="score-text" id="score"></div>
+</div>
+
+<audio id="audioRight" preload="auto">
+    <source src="https://cdn.jsdelivr.net/gh/volantis-x/cdn-static/audio/right.mp3" type="audio/mpeg">
+
+<audio id="audioWrong" preload="auto">
+    <source src="https://cdn.jsdelivr.net/gh/volantis-x/cdn-static/audio/wrong.mp3" type="audio/mpeg">
+
+
+<script>
+const questions = [
+    { q: "《侠女》的导演是？", opt: ["A.张艺谋","B.胡金铨","C.侯孝贤","D.陈凯歌"], ans: 1 },
+    { q: "《英雄》中，无名用的主要兵器是？", opt: ["A.剑","B.刀","C.枪","D.弓"], ans: 0 },
+    { q: "《刺客聂隐娘》的导演是？", opt: ["A.胡金铨","B.张艺谋","C.侯孝贤","D.李安"], ans: 2 },
+    { q: "哪部电影取材自唐代裴铏的传奇小说《聂隐娘》？", opt: ["A.《侠女》","B.《英雄》","C.《刺客聂隐娘》","D.都不是"], ans: 2 },
+    { q: "《侠女》在哪届戛纳电影节获得重要奖项？", opt: ["A.1980","B.1975","C.1990","D.2000"], ans: 1 },
+    { q: "《英雄》里，不同颜色代表不同的叙事版本，不包括以下哪种颜色？", opt: ["A.红","B.蓝","C.绿","D.紫"], ans: 3 },
+    { q: "《刺客聂隐娘》的故事背景朝代是？", opt: ["A.宋","B.唐","C.明","D.清"], ans: 1 },
+    { q: "下列哪部被公认为新武侠电影开山之作之一？", opt: ["A.《英雄》","B.《刺客聂隐娘》","C.《侠女》","D.都不是"], ans: 2 },
+    { q: "《英雄》中，残剑与飞雪的关系是？", opt: ["A.师徒","B.兄妹","C.恋人","D.敌人"], ans: 2 },
+    { q: "三部影片中，风格最接近古典山水画、长镜头美学的是？", opt: ["A.《侠女》","B.《英雄》","C.《刺客聂隐娘》","D.都一样"], ans: 2 }
+];
+
+let cur = 0;
+let score = 0;
+const lock = false;
+
+function load() {
+    const q = questions[cur];
+    document.getElementById("question").innerText = q.q;
+    document.getElementById("progress").innerText = `第 ${cur+1}/${questions.length} 题`;
+    document.getElementById("score").innerText = `得分：${score}`;
+    document.getElementById("tip").innerText = "";
+    const optBox = document.getElementById("options");
+    optBox.innerHTML = "";
+    q.opt.forEach((text,i)=>{
+        const div = document.createElement("div");
+        div.className = "option";
+        div.innerText = text;
+        div.onclick = ()=>choose(i);
+        optBox.appendChild(div);
+    });
+}
+
+function choose(i) {
+    if(lock) return;
+    const q = questions[cur];
+    const ops = document.querySelectorAll(".option");
+    const canPlay = true;
+
+    if(i === q.ans){
+        ops[i].classList.add("correct");
+        document.getElementById("tip").innerText = "✅ 答对了！";
+        score++;
+        document.getElementById("score").innerText = `得分：${score}`;
+        try{ document.getElementById("audioRight").volume = 0.6; document.getElementById("audioRight").play(); }catch(e){}
+        setTimeout(()=>{ next(); }, 900);
+    }else{
+        ops[i].classList.add("wrong");
+        document.getElementById("gameBox").classList.add("shake");
+        document.getElementById("tip").innerText = "❌ 答错了，再想想！";
+        try{ document.getElementById("audioWrong").volume = 0.6; document.getElementById("audioWrong").play(); }catch(e){}
+        setTimeout(()=>{
+            document.getElementById("gameBox").classList.remove("shake");
+            next();
+        }, 1000);
+    }
+}
+
+function next() {
+    cur++;
+    if(cur >= questions.length){
+        end();
+        return;
+    }
+    load();
+}
+
+function end() {
+    document.getElementById("gameBox").innerHTML = `
+        <div class="title">🏆 测验结束</div>
+        <div class="question" style="font-size:22px">最终得分：${score}/${questions.length}</div>
+        <button onclick="location.reload()" style="margin-top:20px;padding:12px 24px;background:#b9956c;border:none;border-radius:8px;font-size:16px;cursor:pointer;">重新开始</button>
+    `;
+}
+
+load();
+</script>
+</body>
+</html>
